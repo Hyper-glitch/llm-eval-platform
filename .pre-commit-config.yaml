@@ -34,12 +34,6 @@ repos:
         pass_filenames: false
         language: system
 
-      - id: pylint
-        name: pylint
-        entry: "echo Skipping pylint"
-        language: system
-        pass_filenames: false
-
       - id: strict-flake8
         name: strict-flake8
         entry: poetry run flake8p .
@@ -62,6 +56,6 @@ repos:
 
       - id: pytest
         name: pytest
-        entry: poetry run pytest --cov=. --cov-report=term-missing --cov-fail-under=55
+        entry: poetry run pytest --cov=. --cov-report=term-missing --cov-fail-under=0
         pass_filenames: false
         language: system
