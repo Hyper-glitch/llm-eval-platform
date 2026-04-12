@@ -12,17 +12,12 @@ logger = logging.getLogger(__name__)
 
 def load_eval_df(path: Path, nrows: int | None = None) -> pd.DataFrame:
     """Read eval DataFrame from CSV and deserialize JSON columns."""
-    logger.info(f"Loading data from {path}")
+    logger.info("Loading data from %s", path)
 
-    suffix = path.suffix.lower()
-    if suffix == ".csv":
-        df = pd.read_csv(path, nrows=nrows)
-    else:
-        raise ValueError(f"Unsupported file format: {suffix}")
+    if path.suffix.lower() != ".csv":
+        raise ValueError(f"Unsupported file format: {path.suffix}")
 
-    if nrows is not None and len(df) > nrows:
-        df = df.head(nrows)
-
+    df = pd.read_csv(path, nrows=nrows)
     for col in ("messages", "expected_tools"):
         if col in df.columns:
             df[col] = df[col].map(_from_json_str)
