@@ -19,7 +19,7 @@ class RunTab:
         col_data, col_context, col_metrics = st.columns([1, 1.4, 1.4])
 
         with col_data:
-            uploaded, run_name, nrows, skip_deepeval, skip_ragas = self._sidebar_data()
+            uploaded, run_name, nrows, skip_deepeval, skip_ragas, source = self._sidebar_data()
         with col_context:
             chatbot_role, scenario, user_description, expected_outcome = self._sidebar_context()
         with col_metrics:
@@ -31,13 +31,21 @@ class RunTab:
         if not st.button("🚀 Запустить оценку", type="primary", use_container_width=True):
             return
 
-        if not uploaded:
-            st.error("Загрузите CSV файл.")
-            st.stop()
-
-        df = self._load_csv(uploaded, nrows)
-        if df is None:
-            return
+        if source == "Импорт из Langfuse":
+            df = st.session_state.get("imported_dataset")
+            if df is None:
+                st.error("Нет импортированных трейсов. Перейди на вкладку «📥 Импорт».")
+                st.stop()
+            nrows_val: int | None = int(nrows) if nrows > 0 else None
+            if nrows_val:
+                df = df.head(nrows_val)
+        else:
+            if not uploaded:
+                st.error("Загрузите CSV файл.")
+                st.stop()
+            df = self._load_csv(uploaded, nrows)
+            if df is None:
+                return
 
         output_dir = OUTPUT_ROOT / run_name
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -67,13 +75,22 @@ class RunTab:
     @staticmethod
     def _sidebar_data():
         st.subheader("Датасет")
-        uploaded = st.file_uploader("CSV файл", type=["csv"], key="run_upload")
+        source = st.radio("Источник", ["CSV файл", "Импорт из Langfuse"], horizontal=True)
+        uploaded = None
+        if source == "CSV файл":
+            uploaded = st.file_uploader("CSV файл", type=["csv"], key="run_upload")
+        else:
+            imported = st.session_state.get("imported_dataset")
+            if imported is not None:
+                st.success(f"{len(imported)} трейсов готово к оценке")
+            else:
+                st.info("Сначала загрузи трейсы на вкладке «📥 Импорт».")
         nrows = st.number_input("Макс. строк (0 = все)", min_value=0, value=0, step=10)
         run_name = st.text_input("Имя запуска", value="run_1")
         st.subheader("Запуск")
         skip_deepeval = st.checkbox("Пропустить DeepEval")
         skip_ragas = st.checkbox("Пропустить Ragas")
-        return uploaded, run_name, nrows, skip_deepeval, skip_ragas
+        return uploaded, run_name, nrows, skip_deepeval, skip_ragas, source
 
     @staticmethod
     def _sidebar_context():
