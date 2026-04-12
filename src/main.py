@@ -12,7 +12,9 @@ from core.judge.factory import create_judges
 from core.pipeline import EvaluationPipeline
 from settings import settings
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
@@ -46,10 +48,18 @@ async def main_async(args: argparse.Namespace) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compute metrics for agent evaluation")
-    parser.add_argument("--csv", required=True, type=Path, help="Path to use-cases file in CSV or Parquet format")
-    parser.add_argument("--nrows", type=int, default=None, help="Number of rows to process (None = all)")
-    parser.add_argument("--tone", type=Path, default=None, help="JSON file with tone of voice criteria")
-    parser.add_argument("--output_dir", type=Path, default=Path("../agent_eval_outputs"), help="Output directory")
+    parser.add_argument(
+        "--csv", required=True, type=Path, help="Path to use-cases file in CSV or Parquet format"
+    )
+    parser.add_argument(
+        "--nrows", type=int, default=None, help="Number of rows to process (None = all)"
+    )
+    parser.add_argument(
+        "--tone", type=Path, default=None, help="JSON file with tone of voice criteria"
+    )
+    parser.add_argument(
+        "--output_dir", type=Path, default=Path("../agent_eval_outputs"), help="Output directory"
+    )
     parser.add_argument("--skip_ragas", action="store_true", help="Skip Ragas evaluation")
     parser.add_argument("--skip_deepeval", action="store_true", help="Skip DeepEval evaluation")
 

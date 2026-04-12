@@ -1,7 +1,5 @@
 """DeepEval LLM adapter backed by an OpenAI-compatible endpoint."""
 
-from __future__ import annotations
-
 import logging
 from typing import Any
 
@@ -19,6 +17,7 @@ from tenacity import (
 )
 
 from core.judge.utils import build_messages, fallback_result, max_tokens_for_attempt, parse_response
+from settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +87,7 @@ class DeepEvalJudge(DeepEvalBaseLLM):
                     model=self._model_name,
                     messages=messages,
                     max_tokens=max_tokens_for_attempt(schema, attempt_num),
-                    temperature=0,
+                    temperature=settings.LLM_TEMPERATURE,
                     extra_body=self._extra_body,
                 )
                 result, error = parse_response(
@@ -114,7 +113,7 @@ class DeepEvalJudge(DeepEvalBaseLLM):
                     model=self._model_name,
                     messages=messages,
                     max_tokens=max_tokens_for_attempt(schema, attempt_num),
-                    temperature=0,
+                    temperature=settings.LLM_TEMPERATURE,
                     extra_body=self._extra_body,
                 )
                 result, error = parse_response(
