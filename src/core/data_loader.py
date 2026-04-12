@@ -23,7 +23,7 @@ def load_eval_df(path: Path, nrows: int | None = None) -> pd.DataFrame:
     if nrows is not None and len(df) > nrows:
         df = df.head(nrows)
 
-    for col in ("messages_ragas_dicts", "expected_tools"):
+    for col in ("messages", "expected_tools"):
         if col in df.columns:
             df[col] = df[col].map(_from_json_str)
 
