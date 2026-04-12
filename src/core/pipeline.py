@@ -71,9 +71,13 @@ class EvaluationPipeline:
             batch_size = max(1, len(samples) // 10)
             for i in range(0, len(samples), batch_size):
                 batch = samples[i : i + batch_size]
-                batch_results = await self._ragas.evaluate(batch)
-                results.append(batch_results)
-                pbar.update(len(batch))
+                try:
+                    batch_results = await self._ragas.evaluate(batch)
+                    results.append(batch_results)
+                except Exception as exc:
+                    logger.error("Ragas batch %d failed, skipping: %s", i, exc)
+                finally:
+                    pbar.update(len(batch))
 
         return pd.concat(results, ignore_index=True) if results else pd.DataFrame()
 
