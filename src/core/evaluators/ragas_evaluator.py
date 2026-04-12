@@ -9,6 +9,7 @@ from ragas import MultiTurnSample
 from ragas.llms import InstructorBaseRagasLLM
 from ragas.metrics.collections import AgentGoalAccuracyWithoutReference, ToolCallAccuracy
 
+from config import EvalConfig
 from core.criteria import DEFAULT_TOPICS, REFERENCE_TOPICS
 from core.message_utils import build_ragas_messages, build_reference_tool_calls
 
@@ -18,8 +19,11 @@ _RagasMetric: TypeAlias = ToolCallAccuracy | AgentGoalAccuracyWithoutReference
 class RagasEvaluator:
     """Evaluates agent dialogues using Ragas multi-turn metrics."""
 
-    def __init__(self, llm: InstructorBaseRagasLLM, max_concurrent: int = 1) -> None:
+    def __init__(
+        self, llm: InstructorBaseRagasLLM, config: EvalConfig, max_concurrent: int = 1
+    ) -> None:
         self._llm = llm
+        self._config = config
         self._metrics = self._build_metrics()
         self._semaphore = asyncio.Semaphore(max_concurrent)
 
@@ -53,13 +57,13 @@ class RagasEvaluator:
 
     async def _score_sample(self, sample: MultiTurnSample) -> dict[str, Any]:
         """Score a single sample across all configured metrics."""
-        row = {}
+        row: dict[str, Any] = {}
         for metric in self._metrics:
             row[metric.name] = await self._score_metric(metric, sample)
         return row
 
     async def _score_metric(self, metric: _RagasMetric, sample: MultiTurnSample) -> Any:
-        """Run a single metric against a sample and normalize the result to a scalar."""
+        """Run a single metric against a sample and return a scalar result."""
         async with self._semaphore:
             if isinstance(metric, ToolCallAccuracy):
                 result = await metric.ascore(
@@ -78,8 +82,12 @@ class RagasEvaluator:
             return result
 
     def _build_metrics(self) -> list[_RagasMetric]:
-        """Instantiate Ragas metrics used for evaluation."""
-        return [
-            ToolCallAccuracy(name="tool_call_accuracy", llm=self._llm),
-            AgentGoalAccuracyWithoutReference(name="agent_goal_accuracy", llm=self._llm),
-        ]
+        """Instantiate Ragas metrics based on config flags."""
+        metrics: list[_RagasMetric] = []
+        if self._config.run_tool_call_accuracy:
+            metrics.append(ToolCallAccuracy(name="tool_call_accuracy", llm=self._llm))
+        if self._config.run_agent_goal_accuracy:
+            metrics.append(
+                AgentGoalAccuracyWithoutReference(name="agent_goal_accuracy", llm=self._llm)
+            )
+        return metrics
