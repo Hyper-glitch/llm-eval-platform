@@ -40,12 +40,6 @@ HTTP_RETRY_MAX_WAIT=3
 ## Запуск
 
 ```bash
-make run
-```
-
-Или вручную из корня проекта:
-
-```bash
 PYTHONPATH=src poetry run streamlit run src/ui/app.py
 ```
 
