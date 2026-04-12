@@ -49,7 +49,7 @@ def parse_response(
 
     try:
         return schema.model_validate(parse_json_markdown(content)), None
-    except Exception as error:
+    except (ValueError, TypeError) as error:
         return None, f"No valid JSON for {schema.__name__}: {error}"
 
 
@@ -59,4 +59,4 @@ def fallback_result(schema: _Schema, error: str | None) -> Any:
     Returns an empty model instance if a schema is provided, otherwise an empty string.
     """
     logger.warning("DeepEval judge fallback: %s", error)
-    return schema.model_validate({}) if schema is not None else ""
+    return schema.model_construct() if schema is not None else ""
