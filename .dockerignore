@@ -1,0 +1,12 @@
+.git
+.venv
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.mypy_cache
+agent_eval_outputs
+dataset
+tests
+*.md
+.env*
