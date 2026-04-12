@@ -26,6 +26,8 @@ class Settings(BaseSettings):
 
     HTTP_MAX_RETRIES: int = 3
     HTTP_TIMEOUT: int = 1
+    HTTP_RETRY_MIN_WAIT: int = 1
+    HTTP_RETRY_MAX_WAIT: int = 3
 
 
 settings = Settings()  # type: ignore[call-arg]
