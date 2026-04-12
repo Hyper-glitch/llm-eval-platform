@@ -28,21 +28,21 @@ def run_evaluation(
         nonlocal error
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+        deepeval_judge, ragas_llm = create_judges(settings)
+        pipeline = EvaluationPipeline(
+            deepeval=DeepevalEvaluator(
+                model=deepeval_judge,
+                config=config,
+                max_concurrent=settings.DEEPEVAL_MAX_CONCURRENT,
+                batch_size=settings.DEEPEVAL_BATCH_SIZE,
+            ),
+            ragas=RagasEvaluator(
+                llm=ragas_llm,
+                config=config,
+                max_concurrent=settings.RAGAS_MAX_WORKERS,
+            ),
+        )
         try:
-            deepeval_judge, ragas_llm = create_judges(settings)
-            pipeline = EvaluationPipeline(
-                deepeval=DeepevalEvaluator(
-                    model=deepeval_judge,
-                    config=config,
-                    max_concurrent=settings.DEEPEVAL_MAX_CONCURRENT,
-                    batch_size=settings.DEEPEVAL_BATCH_SIZE,
-                ),
-                ragas=RagasEvaluator(
-                    llm=ragas_llm,
-                    config=config,
-                    max_concurrent=settings.RAGAS_MAX_WORKERS,
-                ),
-            )
             loop.run_until_complete(
                 pipeline.run(
                     df=df,
