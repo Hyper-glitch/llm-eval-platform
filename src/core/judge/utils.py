@@ -30,10 +30,9 @@ def build_messages(prompt: str, schema: _Schema) -> list[ChatCompletionMessagePa
     ]
 
 
-def max_tokens_for_attempt(schema: _Schema, attempt: int) -> int:
-    """Return the max_tokens cap for a retry attempt, doubling each time up to 8192."""
-    base = 4096 if schema is not None else settings.LLM_MAX_TOKENS
-    return int(min(base * (2**attempt), 8192))
+def max_tokens(schema: _Schema) -> int:
+    """Return the max_tokens cap: 8192 for structured output, LLM_MAX_TOKENS otherwise."""
+    return 8192 if schema is not None else settings.LLM_MAX_TOKENS
 
 
 def parse_response(
