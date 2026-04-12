@@ -1,0 +1,67 @@
+fail_fast: true
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-ast
+      - id: check-yaml
+        exclude: \.gitlab-ci\.yml
+
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: detect-private-key
+
+  - repo: local
+    hooks:
+      - id: black
+        name: black
+        entry: poetry run black .
+        pass_filenames: false
+        language: system
+
+      - id: isort
+        name: isort
+        entry: poetry run isort .
+        pass_filenames: false
+        language: system
+
+      - id: flake8
+        name: flake8
+        entry: poetry run flake8p .
+        pass_filenames: false
+        language: system
+
+      - id: pylint
+        name: pylint
+        entry: "echo Skipping pylint"
+        language: system
+        pass_filenames: false
+
+      - id: strict-flake8
+        name: strict-flake8
+        entry: poetry run flake8p .
+        additional_dependencies:
+          [
+            pyproject-flake8,
+            flake8-eradicate,
+            flake8-boolean-trap,
+            flake8-print,
+            wemake-python-styleguide,
+          ]
+        pass_filenames: false
+        language: python
+
+      - id: mypy
+        name: mypy
+        entry: poetry run mypy . --install-types --non-interactive
+        pass_filenames: false
+        language: system
+
+      - id: pytest
+        name: pytest
+        entry: poetry run pytest --cov=. --cov-report=term-missing --cov-fail-under=55
+        pass_filenames: false
+        language: system
