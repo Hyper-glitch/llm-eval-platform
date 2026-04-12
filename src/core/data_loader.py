@@ -17,9 +17,7 @@ def load_eval_df(path: Path, nrows: int | None = None) -> pd.DataFrame:
     logger.info(f"Loading data from {path}")
 
     suffix = path.suffix.lower()
-    if suffix == ".parquet":
-        df = pd.read_parquet(path)
-    elif suffix == ".csv":
+    if suffix == ".csv":
         df = pd.read_csv(path, nrows=nrows)
     else:
         raise ValueError(f"Unsupported file format: {suffix}")
