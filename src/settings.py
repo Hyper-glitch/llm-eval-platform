@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     RAGAS_MAX_WORKERS: int = 3
     DEEPEVAL_MAX_CONCURRENT: int = 1
     DEEPEVAL_BATCH_SIZE: int = 100
+    LLM_MAX_TOKENS: int = 1024
+    LLM_TEMPERATURE: float = 0.0
 
     HTTP_MAX_RETRIES: int = 3
     HTTP_TIMEOUT: int = 1
