@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from deepeval.models.base_model import DeepEvalBaseLLM
-from openai import APIError, AsyncOpenAI, OpenAI
+from openai import APIError, AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from pydantic import BaseModel
 from tenacity import (
@@ -42,12 +42,10 @@ class DeepEvalJudge(DeepEvalBaseLLM):
     def __init__(
         self,
         model_name: str,
-        sync_client: OpenAI,
         async_client: AsyncOpenAI,
         extra_body: dict[str, Any] | None = None,
     ) -> None:
         self._model_name = model_name
-        self._sync_client = sync_client
         self._async_client = async_client
         self._extra_body = extra_body
         super().__init__(model_name)
@@ -77,26 +75,6 @@ class DeepEvalJudge(DeepEvalBaseLLM):
             return await self._generate_async(build_messages(prompt, schema), schema)
         except RetryError as exc:
             return fallback_result(schema, str(exc))
-
-    @_retry
-    def _generate_sync(
-        self, messages: list[ChatCompletionMessageParam], schema: type[BaseModel] | None
-    ) -> Any:
-        response = self._sync_client.chat.completions.create(
-            model=self._model_name,
-            messages=messages,
-            max_tokens=max_tokens(schema),
-            temperature=settings.LLM_TEMPERATURE,
-            extra_body=self._extra_body,
-        )
-        result, error = parse_response(
-            response.choices[0].message.content,
-            response.choices[0].finish_reason,
-            schema,
-        )
-        if result is None:
-            raise _ParseError(error)
-        return result
 
     @_retry
     async def _generate_async(
