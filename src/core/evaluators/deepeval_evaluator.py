@@ -64,9 +64,9 @@ class DeepevalEvaluator:
 
     def build_case(self, row: pd.Series) -> ConversationalTestCase:
         """Build a DeepEval ConversationalTestCase from a DataFrame row."""
-        turns = build_deepeval_turns(row.get("messages_ragas_dicts") or [])
+        turns = build_deepeval_turns(row["messages"])
         if not turns:
-            ticket_id = row.get("ticket_id", "<unknown>")
+            ticket_id = row["ticket_id"]
             raise ValueError(f"No dialogue turns parsed for ticket_id={ticket_id}")
 
         return ConversationalTestCase(
