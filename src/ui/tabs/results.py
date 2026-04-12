@@ -4,58 +4,67 @@ import pandas as pd
 import streamlit as st
 
 from ui.helpers import recent_runs, render_scores_table, score_columns
+from ui.tabs.langfuse_export import LangfuseExport
 
 
-def render() -> None:
-    st.subheader("Просмотр результатов")
+class ResultsTab:
+    def __init__(self) -> None:
+        self._export = LangfuseExport()
 
-    source = st.radio(
-        "Источник",
-        ["Последний запуск", "Выбрать из истории", "Загрузить файл"],
-        horizontal=True,
-    )
+    def render(self) -> None:
+        st.subheader("Просмотр результатов")
 
-    df: pd.DataFrame | None = None
+        source = st.radio(
+            "Источник",
+            ["Последний запуск", "Выбрать из истории", "Загрузить файл"],
+            horizontal=True,
+        )
 
-    if source == "Последний запуск":
-        df = st.session_state.get("last_result")
-        if df is None:
-            st.info("Запустите оценку на вкладке «Запуск».")
+        df: pd.DataFrame | None = None
+        run_name: str = st.session_state.get("last_run_name", "run_1")
 
-    elif source == "Выбрать из истории":
-        runs = recent_runs()
-        if not runs:
-            st.info("Нет сохранённых запусков.")
+        if source == "Последний запуск":
+            df = st.session_state.get("last_result")
+            if df is None:
+                st.info("Запустите оценку на вкладке «Запуск».")
+
+        elif source == "Выбрать из истории":
+            runs = recent_runs()
+            if not runs:
+                st.info("Нет сохранённых запусков.")
+            else:
+                options = {p.name: p for p in runs}
+                selected = st.selectbox("Запуск", list(options.keys()))
+                if selected:
+                    run_name = selected
+                    df = pd.read_csv(options[selected] / "scores.csv")
+
         else:
-            options = {p.name: p for p in runs}
-            selected = st.selectbox("Запуск", list(options.keys()))
-            if selected:
-                df = pd.read_csv(options[selected] / "scores.csv")
+            up = st.file_uploader("scores.csv", type=["csv"], key="results_upload")
+            if up:
+                df = pd.read_csv(up)
 
-    else:
-        up = st.file_uploader("scores.csv", type=["csv"], key="results_upload")
-        if up:
-            df = pd.read_csv(up)
+        if df is None:
+            return
 
-    if df is None:
-        return
+        st.subheader("Сводка метрик")
+        render_scores_table(df)
 
-    st.subheader("Сводка метрик")
-    render_scores_table(df)
+        cols = score_columns(df)
+        if cols and "scenario" in df.columns:
+            st.subheader("По сценариям")
+            pivot = df.groupby("scenario")[cols].mean().round(3)
+            pivot.columns = [c.replace("_score", "") for c in pivot.columns]
+            st.dataframe(pivot, use_container_width=True)
 
-    cols = score_columns(df)
-    if cols and "scenario" in df.columns:
-        st.subheader("По сценариям")
-        pivot = df.groupby("scenario")[cols].mean().round(3)
-        pivot.columns = [c.replace("_score", "") for c in pivot.columns]
-        st.dataframe(pivot, use_container_width=True)
+        st.subheader("Все строки")
+        st.dataframe(df, use_container_width=True)
 
-    st.subheader("Все строки")
-    st.dataframe(df, use_container_width=True)
+        st.download_button(
+            "Скачать CSV",
+            data=df.to_csv(index=False).encode(),
+            file_name="scores.csv",
+            mime="text/csv",
+        )
 
-    st.download_button(
-        "Скачать CSV",
-        data=df.to_csv(index=False).encode(),
-        file_name="scores.csv",
-        mime="text/csv",
-    )
+        self._export.render(df, run_name)
