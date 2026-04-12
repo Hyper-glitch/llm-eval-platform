@@ -1,6 +1,5 @@
 """Ragas evaluator for multi-turn agent dialogues."""
 
-import ast
 import asyncio
 from typing import Any, TypeAlias
 
@@ -35,18 +34,13 @@ class RagasEvaluator:
     @staticmethod
     def build_case(row: pd.Series) -> MultiTurnSample:
         """Build a Ragas MultiTurnSample from a DataFrame row."""
-        raw_messages = row.get("messages_ragas_dicts") or []
+        raw_messages = row.get("messages") or []
         scenario = row.get("scenario", "")
         topics = REFERENCE_TOPICS.get(scenario, DEFAULT_TOPICS)
 
         messages = build_ragas_messages(raw_messages)
 
         raw_tools = row.get("expected_tools") or []
-        if isinstance(raw_tools, str):
-            try:
-                raw_tools = ast.literal_eval(raw_tools)
-            except (ValueError, SyntaxError):
-                raw_tools = []
         reference_tool_calls = build_reference_tool_calls(raw_tools)
 
         return MultiTurnSample(
