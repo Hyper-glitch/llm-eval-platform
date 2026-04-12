@@ -21,7 +21,7 @@ def build_deepeval_turns(raw_messages: list[dict[str, Any]]) -> list[Turn]:
         content = msg["content"]
 
         if role in ("human", "user"):
-            turns.append(Turn(**msg))
+            turns.append(Turn(role="user", content=content))
             last_assistant = None
 
         elif role in ("ai", "assistant"):
@@ -67,7 +67,8 @@ def build_ragas_messages(raw_messages: list[dict[str, Any]]) -> list[Any]:
         elif role == "tool":
             messages.append(ToolMessage(content=content))
         else:
-            messages.append(HumanMessage(content=content))
+            logger.warning("Unexpected message role %r, skipping", role)
+            continue
 
     return messages
 
@@ -97,7 +98,7 @@ def _parse_tool_calls(raw_tool_calls: list[dict[str, Any]]) -> list[ToolCall]:
 
 def _parse_tool_call(raw_tool_call: dict[str, Any]) -> ToolCall:
     """Parse a single raw tool call dict, deserializing JSON args if needed."""
-    args = raw_tool_call["args"]
+    args = raw_tool_call.get("args", {})
     if isinstance(args, str):
         try:
             args = json.loads(args)
