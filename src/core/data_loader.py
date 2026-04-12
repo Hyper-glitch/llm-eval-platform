@@ -9,8 +9,6 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-_JSON_COLUMNS = ("messages_ragas_dicts", "expected_tools")
-
 
 def load_eval_df(path: Path, nrows: int | None = None) -> pd.DataFrame:
     """Read eval DataFrame from CSV and deserialize JSON columns."""
@@ -25,7 +23,7 @@ def load_eval_df(path: Path, nrows: int | None = None) -> pd.DataFrame:
     if nrows is not None and len(df) > nrows:
         df = df.head(nrows)
 
-    for col in _JSON_COLUMNS:
+    for col in ("messages_ragas_dicts", "expected_tools"):
         if col in df.columns:
             df[col] = df[col].map(_from_json_str)
 
