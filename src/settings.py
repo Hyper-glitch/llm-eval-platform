@@ -29,5 +29,9 @@ class Settings(BaseSettings):
     HTTP_RETRY_MIN_WAIT: int = 1
     HTTP_RETRY_MAX_WAIT: int = 3
 
+    LANGFUSE_BASE_URL: str
+    LANGFUSE_PUBLIC_KEY: str
+    LANGFUSE_SECRET_KEY: str
+
 
 settings = Settings()  # type: ignore[call-arg]
