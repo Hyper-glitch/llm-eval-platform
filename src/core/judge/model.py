@@ -8,20 +8,18 @@ from openai import APIError, AsyncOpenAI, OpenAI
 from openai.types.chat import ChatCompletionMessageParam
 from pydantic import BaseModel
 from tenacity import (
-    AsyncRetrying,
     RetryError,
-    Retrying,
+    retry,
     retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
 )
 
-from core.judge.utils import build_messages, fallback_result, max_tokens_for_attempt, parse_response
+from core.judge.utils import build_messages, fallback_result, max_tokens, parse_response
 from settings import settings
 
 logger = logging.getLogger(__name__)
 
-MAX_RETRIES = 2
 STEPS_FALLBACK = ("Check correctness", "Check hallucination", "Check tool usage")
 
 _RETRY_ON = (APIError,)
@@ -29,6 +27,13 @@ _RETRY_ON = (APIError,)
 
 class _ParseError(Exception):
     """Raised when response parsing fails; triggers a retry."""
+
+
+_retry = retry(
+    stop=stop_after_attempt(settings.HTTP_MAX_RETRIES),
+    wait=wait_exponential(min=settings.HTTP_RETRY_MIN_WAIT, max=settings.HTTP_RETRY_MAX_WAIT),
+    retry=retry_if_exception_type((*_RETRY_ON, _ParseError)),
+)
 
 
 class DeepEvalJudge(DeepEvalBaseLLM):
@@ -73,54 +78,43 @@ class DeepEvalJudge(DeepEvalBaseLLM):
         except RetryError as exc:
             return fallback_result(schema, str(exc))
 
+    @_retry
     def _generate_sync(
         self, messages: list[ChatCompletionMessageParam], schema: type[BaseModel] | None
     ) -> Any:
-        for attempt in Retrying(
-            stop=stop_after_attempt(MAX_RETRIES),
-            wait=wait_exponential(multiplier=1, min=1, max=10),
-            retry=retry_if_exception_type((*_RETRY_ON, _ParseError)),
-        ):
-            with attempt:
-                attempt_num = attempt.retry_state.attempt_number - 1
-                response = self._sync_client.chat.completions.create(
-                    model=self._model_name,
-                    messages=messages,
-                    max_tokens=max_tokens_for_attempt(schema, attempt_num),
-                    temperature=settings.LLM_TEMPERATURE,
-                    extra_body=self._extra_body,
-                )
-                result, error = parse_response(
-                    response.choices[0].message.content,
-                    response.choices[0].finish_reason,
-                    schema,
-                )
-                if result is None:
-                    raise _ParseError(error)
-                return result
+        response = self._sync_client.chat.completions.create(
+            model=self._model_name,
+            messages=messages,
+            max_tokens=max_tokens(schema),
+            temperature=settings.LLM_TEMPERATURE,
+            extra_body=self._extra_body,
+        )
+        result, error = parse_response(
+            response.choices[0].message.content,
+            response.choices[0].finish_reason,
+            schema,
+        )
+        if result is None:
+            raise _ParseError(error)
+        return result
 
+    @_retry
     async def _generate_async(
         self, messages: list[ChatCompletionMessageParam], schema: type[BaseModel] | None
     ) -> Any:
-        async for attempt in AsyncRetrying(
-            stop=stop_after_attempt(MAX_RETRIES),
-            wait=wait_exponential(multiplier=1, min=1, max=10),
-            retry=retry_if_exception_type((*_RETRY_ON, _ParseError)),
-        ):
-            with attempt:
-                attempt_num = attempt.retry_state.attempt_number - 1
-                response = await self._async_client.chat.completions.create(
-                    model=self._model_name,
-                    messages=messages,
-                    max_tokens=max_tokens_for_attempt(schema, attempt_num),
-                    temperature=settings.LLM_TEMPERATURE,
-                    extra_body=self._extra_body,
-                )
-                result, error = parse_response(
-                    response.choices[0].message.content,
-                    response.choices[0].finish_reason,
-                    schema,
-                )
-                if result is None:
-                    raise _ParseError(error)
-                return result
+        response = await self._async_client.chat.completions.create(
+            model=self._model_name,
+            messages=messages,
+            max_tokens=max_tokens(schema),
+            temperature=settings.LLM_TEMPERATURE,
+            extra_body=self._extra_body,
+        )
+        result, error = parse_response(
+            response.choices[0].message.content,
+            response.choices[0].finish_reason,
+            schema,
+        )
+        if result is None:
+            raise _ParseError(error)
+
+        return result
