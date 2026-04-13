@@ -54,11 +54,11 @@ class LangfuseFetcher:
 
     def _list_traces(self, filters: TraceFilters) -> list[TraceWithFullDetails]:
         """Fetch traces page by page up to filters.limit."""
-        results = []
+        traces: list[TraceWithFullDetails] = []
         page = 1
         page_size = min(filters.limit, 100)
 
-        while len(results) < filters.limit:
+        while len(traces) < filters.limit:
             resp = self._api.trace.list(
                 page=page,
                 limit=page_size,
@@ -75,15 +75,15 @@ class LangfuseFetcher:
 
             for trace in batch:
                 full = self._api.trace.get(trace.id)
-                results.append(full)
-                if len(results) >= filters.limit:
+                traces.append(full)
+                if len(traces) >= filters.limit:
                     break
 
             if len(batch) < page_size:
                 break
             page += 1
 
-        return results
+        return traces
 
     def _trace_to_row(self, trace: TraceWithFullDetails) -> dict[str, Any]:
         return {
