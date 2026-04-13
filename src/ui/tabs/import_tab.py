@@ -9,7 +9,7 @@ from settings import settings
 
 
 class ImportTab:
-    def __init__(self):
+    def __init__(self) -> None:
         self._fetcher = LangfuseFetcher()
 
     def render(self) -> None:

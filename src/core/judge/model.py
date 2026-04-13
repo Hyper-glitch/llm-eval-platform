@@ -1,5 +1,6 @@
 """DeepEval LLM adapter backed by an OpenAI-compatible endpoint."""
 
+import asyncio
 import logging
 from typing import Any
 
@@ -22,8 +23,6 @@ logger = logging.getLogger(__name__)
 
 STEPS_FALLBACK = ("Check correctness", "Check hallucination", "Check tool usage")
 
-_RETRY_ON = (APIError,)
-
 
 class _ParseError(Exception):
     """Raised when response parsing fails; triggers a retry."""
@@ -32,7 +31,7 @@ class _ParseError(Exception):
 _retry = retry(
     stop=stop_after_attempt(settings.HTTP_MAX_RETRIES),
     wait=wait_exponential(min=settings.HTTP_RETRY_MIN_WAIT, max=settings.HTTP_RETRY_MAX_WAIT),
-    retry=retry_if_exception_type((*_RETRY_ON, _ParseError)),
+    retry=retry_if_exception_type((APIError, _ParseError)),
 )
 
 
@@ -75,6 +74,20 @@ class DeepEvalJudge(DeepEvalBaseLLM):
             return await self._generate_async(build_messages(prompt, schema), schema)
         except RetryError as exc:
             return fallback_result(schema, str(exc))
+
+    def _generate_sync(
+        self, messages: list[ChatCompletionMessageParam], schema: type[BaseModel] | None
+    ) -> Any:
+        """Run the async implementation on a fresh event loop.
+
+        No separate sync client is needed — httpx handles transport for both paths.
+        A fresh loop avoids conflicts when called from a thread (run_in_executor).
+        """
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(self._generate_async(messages, schema))
+        finally:
+            loop.close()
 
     @_retry
     async def _generate_async(

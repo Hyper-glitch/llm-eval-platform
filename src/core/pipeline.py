@@ -3,15 +3,12 @@
 import asyncio
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import pandas as pd
 from ragas import MultiTurnSample
 from tqdm.asyncio import tqdm
 
-if TYPE_CHECKING:
-    from core.evaluators.deepeval_evaluator import DeepevalEvaluator
-    from core.evaluators.ragas_evaluator import RagasEvaluator
+from core.evaluators.base import Evaluator
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +16,7 @@ logger = logging.getLogger(__name__)
 class EvaluationPipeline:
     """Orchestrates evaluation using DeepEval and Ragas."""
 
-    def __init__(self, deepeval: "DeepevalEvaluator", ragas: "RagasEvaluator") -> None:
+    def __init__(self, deepeval: Evaluator, ragas: Evaluator) -> None:
         self._deepeval = deepeval
         self._ragas = ragas
 

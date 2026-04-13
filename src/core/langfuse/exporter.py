@@ -113,6 +113,7 @@ class LangfuseExporter:
         Output is the ticket_id returned by _identity_task; input/expected_output/metadata
         are passed by Langfuse but not needed for score lookup.
         """
+
         def evaluator(
             *,
             output: Any,
