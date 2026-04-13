@@ -5,6 +5,7 @@ import tempfile
 
 import pandas as pd
 import streamlit as st
+from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 from config import EvalConfig
 from core.criteria import GEVAL_CRITERIA
@@ -73,7 +74,7 @@ class RunTab:
         self._show_results(output_dir, run_name, df)
 
     @staticmethod
-    def _sidebar_data():
+    def _sidebar_data() -> tuple[UploadedFile | None, str, int, bool, bool, str]:
         st.subheader("Датасет")
         source = st.radio("Источник", ["CSV файл", "Импорт из Langfuse"], horizontal=True)
         uploaded = None
@@ -93,7 +94,7 @@ class RunTab:
         return uploaded, run_name, nrows, skip_deepeval, skip_ragas, source
 
     @staticmethod
-    def _sidebar_context():
+    def _sidebar_context() -> tuple[str, str, str, str]:
         st.subheader("Контекст агента")
         chatbot_role = st.text_area("Роль агента", value=CUSTOMER_CHATBOT_ROLE, height=130)
         scenario = st.text_area("Сценарий", value=SCENARIO, height=80)
@@ -102,7 +103,7 @@ class RunTab:
         return chatbot_role, scenario, user_description, expected_outcome
 
     @staticmethod
-    def _sidebar_metrics():
+    def _sidebar_metrics() -> tuple[bool, bool, dict[str, str], bool, bool]:
         st.subheader("Метрики")
         st.markdown("**DeepEval — встроенные**")
         run_role = st.checkbox("Role Adherence", value=True)
@@ -126,7 +127,7 @@ class RunTab:
         return run_role, run_completeness, geval_criteria, run_tool_acc, run_goal_acc
 
     @staticmethod
-    def _load_csv(uploaded, nrows) -> pd.DataFrame | None:
+    def _load_csv(uploaded: UploadedFile, nrows: int) -> pd.DataFrame | None:
         nrows_val: int | None = int(nrows) if nrows > 0 else None
         with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
             tmp.write(uploaded.read())
