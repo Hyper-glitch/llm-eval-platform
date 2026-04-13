@@ -1,10 +1,10 @@
 """Langfuse exporter — pushes eval results as trace scores and dataset experiments."""
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from langfuse import Langfuse
-from langfuse.experiment import Evaluation, ExperimentItemResult, LocalExperimentItem
+from langfuse.experiment import Evaluation, EvaluatorFunction, ExperimentItem, LocalExperimentItem
 import pandas as pd
 
 from settings import settings
@@ -108,9 +108,20 @@ class LangfuseExporter:
             for _, row in source_df.iterrows()
         ]
 
-    def _make_evaluator(self, metric: str, scores_indexed: pd.DataFrame):
-        def evaluator(result: ExperimentItemResult) -> Evaluation | None:
-            ticket_id = result.output
+    def _make_evaluator(self, metric: str, scores_indexed: pd.DataFrame) -> EvaluatorFunction:
+        """
+        Output is the ticket_id returned by _identity_task; input/expected_output/metadata
+        are passed by Langfuse but not needed for score lookup.
+        """
+        def evaluator(
+            *,
+            output: Any,
+            input: Any = None,
+            expected_output: Any = None,
+            metadata: dict[str, Any] | None = None,
+            **_: Any,
+        ) -> Evaluation | None:
+            ticket_id = output
             if ticket_id not in scores_indexed.index:
                 return None
 
@@ -124,10 +135,10 @@ class LangfuseExporter:
                 comment=self._reason(scores_indexed.loc[ticket_id], metric),
             )
 
-        return evaluator
+        return cast(EvaluatorFunction, evaluator)
 
     @staticmethod
-    def _identity_task(item: LocalExperimentItem) -> Any:
+    def _identity_task(*, item: ExperimentItem, **_: Any) -> Any:
         return item["metadata"]["ticket_id"]  # type: ignore[index]
 
     @staticmethod
