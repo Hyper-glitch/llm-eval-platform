@@ -28,6 +28,8 @@ poetry install
 
 ```env
 # Модель-судья (через OpenRouter)
+# Поддерживаются только модели без встроенного reasoning/thinking (без CoT в ответе)
+# Например: openai/gpt-4o-mini, qwen/qwen-2.5-72b-instruct, anthropic/claude-3-haiku
 OPEN_ROUTER_API_KEY=sk-or-...
 JUDGE_MODEL_NAME=openai/gpt-4o-mini
 
@@ -65,6 +67,12 @@ PYTHONPATH=src poetry run streamlit run src/ui/app.py
 docker build -t llm-eval-platform .
 docker run -p 8501:8501 --env-file src/.env llm-eval-platform
 ```
+
+> **Важно:** при запуске через `--env-file` Docker передаёт значения буквально, без обработки кавычек. Значения в `.env` должны быть **без кавычек**:
+> ```env
+> OPEN_ROUTER_API_KEY=sk-or-...   # ✅
+> OPEN_ROUTER_API_KEY="sk-or-..." # ❌ кавычки попадут в ключ
+> ```
 
 ## Интерфейс
 
